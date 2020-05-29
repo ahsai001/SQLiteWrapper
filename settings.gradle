@@ -1,2 +1,2 @@
-include ':app', ':SQLWAnnotation', ':SQLWProcessor', ':SQLiteWrapper'
+include ':app', ':SQLWAnnotation', ':SQLWProcessor', ':sqlitewrapper'
 rootProject.name='SQLW Sample Project'

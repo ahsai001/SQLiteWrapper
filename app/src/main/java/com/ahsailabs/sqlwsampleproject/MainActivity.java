@@ -3,9 +3,9 @@ package com.ahsailabs.sqlwsampleproject;
 import android.content.Context;
 import android.os.Bundle;
 
+import com.ahsailabs.sqlitewrapper.SQLiteWrapper;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-import com.zaitunlabs.zlcore.utils.SQLiteWrapper;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;

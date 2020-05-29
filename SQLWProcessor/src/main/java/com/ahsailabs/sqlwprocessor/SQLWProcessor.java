@@ -1,11 +1,15 @@
 package com.ahsailabs.sqlwprocessor;
 
+import com.ahsailabs.sqlwannotation.Check;
 import com.ahsailabs.sqlwannotation.Column;
+import com.ahsailabs.sqlwannotation.ForeignKey;
 import com.ahsailabs.sqlwannotation.Index;
 import com.ahsailabs.sqlwannotation.Table;
 import com.ahsailabs.sqlwannotation.Unique;
 import com.google.auto.service.AutoService;
 import com.google.common.base.CaseFormat;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
@@ -124,12 +128,12 @@ public class SQLWProcessor extends AbstractProcessor {
 
     private void generateTableClassHelper(TypeElement originatingType){
         String targetClassName = originatingType.getSimpleName().toString();
+        String targetObjectClassName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_CAMEL,targetClassName);
 
         Table table = originatingType.getAnnotation(Table.class);
         String tableName = table.name();
         boolean recordLog = table.recordLog();
         boolean softDelete = table.softDelete();
-
 
 
         //create static void method named
@@ -141,7 +145,7 @@ public class SQLWProcessor extends AbstractProcessor {
         ClassName listClassName = ClassName.get("java.util", "List");
         ClassName dateClassName = ClassName.get("java.util", "Date");
         ClassName objectClassName = ClassName.get("java.lang", "Object");
-        ClassName sqliteWrapperClassName = ClassName.get("com.zaitunlabs.zlcore.utils", "SQLiteWrapper");
+        ClassName sqliteWrapperClassName = ClassName.get("com.ahsailabs.sqlitewrapper", "SQLiteWrapper");
 
         TypeVariableName targetTypeVariableName = TypeVariableName.get(targetClassName);
         TypeVariableName sqlwTypeVariableName = TypeVariableName.get("SQLiteWrapper");
@@ -157,13 +161,13 @@ public class SQLWProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(void.class)
                 .addParameter(dataTypeVariableName, "dataList")
-                .addParameter(targetTypeVariableName, "tableClassItem");
+                .addParameter(targetTypeVariableName, targetObjectClassName);
 
         MethodSpec.Builder setDataSpecBuilder = MethodSpec.methodBuilder("setObjectData")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(void.class)
                 .addParameter(dataTypeVariableName, "dataList")
-                .addParameter(targetTypeVariableName, "tableClassItem");
+                .addParameter(targetTypeVariableName, targetObjectClassName);
 
 
         List<VariableElement> variableElements = new ImmutableList.Builder<VariableElement>()
@@ -198,9 +202,9 @@ public class SQLWProcessor extends AbstractProcessor {
             String getterSetter = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,fieldName);
 
             if(!isPublicField){
-                getDataSpecBuilder.addCode("dataList.add(tableClassItem.get"+getterSetter+"());");
+                getDataSpecBuilder.addCode("dataList.add("+targetObjectClassName+".get"+getterSetter+"());");
             } else {
-                getDataSpecBuilder.addCode("dataList.add(tableClassItem."+fieldName+");");
+                getDataSpecBuilder.addCode("dataList.add("+targetObjectClassName+"."+fieldName+");");
             }
 
 
@@ -232,15 +236,15 @@ public class SQLWProcessor extends AbstractProcessor {
 
             if(!isPublicField){
                 if(javaClassName != null){
-                    setDataSpecBuilder.addCode("tableClassItem.set" + getterSetter + "((" + javaType + ")dataList.get(" + i + "));", javaClassName);
+                    setDataSpecBuilder.addCode(targetObjectClassName+".set" + getterSetter + "((" + javaType + ")dataList.get(" + i + "));", javaClassName);
                 } else {
-                    setDataSpecBuilder.addCode("tableClassItem.set" + getterSetter + "((" + javaType + ")dataList.get(" + i + "));");
+                    setDataSpecBuilder.addCode(targetObjectClassName+".set" + getterSetter + "((" + javaType + ")dataList.get(" + i + "));");
                 }
             } else {
                 if(javaClassName != null) {
-                    setDataSpecBuilder.addCode("tableClassItem." + fieldName + " = (" + javaType + ")dataList.get(" + i + ");", javaClassName);
+                    setDataSpecBuilder.addCode(targetObjectClassName+"." + fieldName + " = (" + javaType + ")dataList.get(" + i + ");", javaClassName);
                 } else {
-                    setDataSpecBuilder.addCode("tableClassItem." + fieldName + " = (" + javaType + ")dataList.get(" + i + ");");
+                    setDataSpecBuilder.addCode(targetObjectClassName+"." + fieldName + " = (" + javaType + ")dataList.get(" + i + ");");
                 }
             }
 
@@ -250,6 +254,18 @@ public class SQLWProcessor extends AbstractProcessor {
 
             if(index){
                 designMethodSpecBuilder.addCode(".addIndex(\""+columnName+"\")");
+                designMethodSpecBuilder.addCode("\n");
+            }
+
+
+            ForeignKey foreignKey = element.getAnnotation(ForeignKey.class);
+            if(foreignKey != null){
+                String parentTableName = foreignKey.parentTableName();
+                String parentColumnName = foreignKey.parentColumnName();
+                String onUpdate = foreignKey.onUpdate();
+                String onDelete = foreignKey.onDelete();
+
+                designMethodSpecBuilder.addCode(".addForeignKey(\""+columnName+"\",\""+parentTableName+"\",null,\""+parentColumnName+"\",\""+onUpdate+"\",\""+onDelete+"\")");
                 designMethodSpecBuilder.addCode("\n");
             }
 
@@ -266,6 +282,71 @@ public class SQLWProcessor extends AbstractProcessor {
             designMethodSpecBuilder.addCode(".enableSoftDelete()");
             designMethodSpecBuilder.addCode("\n");
         }
+
+        Index index = originatingType.getAnnotation(Index.class);
+        Unique unique = originatingType.getAnnotation(Unique.class);
+        Check check = originatingType.getAnnotation(Check.class);
+
+        if(index != null){
+            String firstIndex = index.first();
+            String secondIndex = index.second();
+            String thirdIndex = index.third();
+            String forthIndex = index.forth();
+            String fifthIndex = index.fifth();
+
+            List<String> firstIndexSplit = Splitter.on(",").trimResults().splitToList(firstIndex);
+            String xxx = Joiner.on("\",\"").skipNulls().join(firstIndexSplit);
+            if(!firstIndex.isEmpty()){
+                designMethodSpecBuilder.addCode(".addIndex(\""+xxx+"\")");
+            }
+            if(!secondIndex.isEmpty()){
+                designMethodSpecBuilder.addCode(".addIndex("+secondIndex+")");
+            }
+            if(!thirdIndex.isEmpty()){
+                designMethodSpecBuilder.addCode(".addIndex("+thirdIndex+")");
+            }
+            if(!forthIndex.isEmpty()){
+                designMethodSpecBuilder.addCode(".addIndex("+forthIndex+")");
+            }
+            if(!fifthIndex.isEmpty()){
+                designMethodSpecBuilder.addCode(".addIndex("+fifthIndex+")");
+            }
+        }
+
+        if(unique != null){
+            String firstUnique = unique.first();
+            String secondUnique = unique.second();
+            String thirdUnique = unique.third();
+            String forthUnique = unique.forth();
+            String fifthUnique = unique.fifth();
+
+
+            List<String> firstUniqueSplit = Splitter.on(",").trimResults().splitToList(firstUnique);
+            String xxx = Joiner.on("\",\"").skipNulls().join(firstUniqueSplit);
+            if(!firstUnique.isEmpty()){
+                designMethodSpecBuilder.addCode(".addUnique(\""+xxx+"\")");
+            }
+            if(!secondUnique.isEmpty()){
+                designMethodSpecBuilder.addCode(".addUnique("+secondUnique+")");
+            }
+            if(!thirdUnique.isEmpty()){
+                designMethodSpecBuilder.addCode(".addUnique("+thirdUnique+")");
+            }
+            if(!forthUnique.isEmpty()){
+                designMethodSpecBuilder.addCode(".addUnique("+forthUnique+")");
+            }
+            if(!fifthUnique.isEmpty()){
+                designMethodSpecBuilder.addCode(".addUnique("+fifthUnique+")");
+            }
+        }
+
+        if(check != null){
+            String conditionalLogic = check.conditionalLogic();
+            if(!conditionalLogic.isEmpty()){
+                designMethodSpecBuilder.addCode(".addCheck(\""+conditionalLogic+"\")");
+            }
+        }
+
 
         designMethodSpecBuilder.addCode(");");
 
