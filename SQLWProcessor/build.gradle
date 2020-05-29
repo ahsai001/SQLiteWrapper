@@ -6,10 +6,10 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':SQLWAnnotation')
 
-    implementation 'com.squareup:javapoet:1.8.0'
-    implementation 'com.google.guava:guava:24.1-jre'
-    implementation 'com.google.auto.service:auto-service:1.0-rc2'
-    annotationProcessor 'com.google.auto.service:auto-service:1.0-rc2'
+    implementation 'com.squareup:javapoet:1.12.1'
+    implementation 'com.google.guava:guava:29.0-jre'
+    implementation 'com.google.auto.service:auto-service:1.0-rc7'
+    annotationProcessor 'com.google.auto.service:auto-service:1.0-rc7'
 }
 
 sourceCompatibility = "1.8"

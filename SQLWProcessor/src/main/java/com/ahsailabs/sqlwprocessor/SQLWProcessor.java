@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
 
@@ -140,13 +141,15 @@ public class SQLWProcessor extends AbstractProcessor {
         //getObjectData(List<Object> dataList, OnlineTryoutItem onlineTryoutItem)
         //setObjectData(List<Object> dataList, OnlineTryoutItem onlineTryoutItem)
 
-        TypeVariableName targetTypeVariableName = TypeVariableName.get(targetClassName);
-        TypeVariableName sqlwTypeVariableName = TypeVariableName.get("SQLiteWrapper");
-        TypeVariableName dataTypeVariableName = TypeVariableName.get("List<Object>");
 
         ClassName listClassName = ClassName.get("java.util", "List");
-        ClassName arrayListClassName = ClassName.get("java.util", "ArrayList");
+        ClassName objectClassName = ClassName.get("java.lang", "Object");
         ClassName sqliteWrapperClassName = ClassName.get("com.zaitunlabs.zlcore.utils", "SQLiteWrapper");
+
+        TypeVariableName targetTypeVariableName = TypeVariableName.get(targetClassName);
+        TypeVariableName sqlwTypeVariableName = TypeVariableName.get("SQLiteWrapper");
+        ParameterizedTypeName dataTypeVariableName = ParameterizedTypeName.get(listClassName, objectClassName);
+
 
         MethodSpec.Builder designMethodSpecBuilder = MethodSpec.methodBuilder("designTable")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
@@ -245,8 +248,6 @@ public class SQLWProcessor extends AbstractProcessor {
         }
 
         designMethodSpecBuilder.addCode(");");
-
-        designMethodSpecBuilder.addCode("/*$T<Object> oke = new $T<Object>();*/\n", listClassName, arrayListClassName);
 
         //create a class to wrap our method
         //the class name will be the annotated class name + SQLWH
