@@ -4,7 +4,7 @@ group = 'com.github.ahsai001'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation project(':SQLWAnnotation')
+    implementation project(':Annotation')
 
     implementation 'com.squareup:javapoet:1.12.1'
     implementation 'com.google.guava:guava:29.0-jre'
