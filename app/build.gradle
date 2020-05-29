@@ -7,8 +7,8 @@ android {
         applicationId "com.ahsailabs.sqlwsampleproject"
         minSdkVersion 16
         targetSdkVersion 29
-        versionCode 5
-        versionName "0.3.11.8"
+        versionCode 6
+        versionName "0.3.12.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -30,7 +30,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
 
-    implementation project(':sqlitewrapper')
+    implementation project(':SQLWCore')
     implementation project(':SQLWAnnotation')
     annotationProcessor project(':SQLWProcessor')
 }
