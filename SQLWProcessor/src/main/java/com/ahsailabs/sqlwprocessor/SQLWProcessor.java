@@ -5,6 +5,7 @@ import com.ahsailabs.sqlwannotation.Index;
 import com.ahsailabs.sqlwannotation.Table;
 import com.ahsailabs.sqlwannotation.Unique;
 import com.google.auto.service.AutoService;
+import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
@@ -117,11 +118,6 @@ public class SQLWProcessor extends AbstractProcessor {
             return false;
         }
 
-        if(!variableElement.getModifiers().contains(Modifier.PUBLIC)){
-            messager.printMessage(Diagnostic.Kind.ERROR,variableElement.getSimpleName()+" only public field can be annotated with Column");
-            return false;
-        }
-
         return true;
     }
 
@@ -143,6 +139,7 @@ public class SQLWProcessor extends AbstractProcessor {
 
 
         ClassName listClassName = ClassName.get("java.util", "List");
+        ClassName dateClassName = ClassName.get("java.util", "Date");
         ClassName objectClassName = ClassName.get("java.lang", "Object");
         ClassName sqliteWrapperClassName = ClassName.get("com.zaitunlabs.zlcore.utils", "SQLiteWrapper");
 
@@ -182,12 +179,14 @@ public class SQLWProcessor extends AbstractProcessor {
 
             if (!isValidField(element))continue;
 
+            boolean isPublicField = element.getModifiers().contains(Modifier.PUBLIC);
+
             Column column = element.getAnnotation(Column.class);
 
             String fieldName = element.getSimpleName().toString();
             String columnName = column.name();
             if(columnName.isEmpty()){
-                columnName = fieldName;
+                columnName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE,fieldName);
             }
 
             boolean index = column.index();
@@ -196,33 +195,54 @@ public class SQLWProcessor extends AbstractProcessor {
 
 
 
-            getDataSpecBuilder.addCode("dataList.add(tableClassItem."+fieldName+");");
+            String getterSetter = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,fieldName);
 
-
-            if(element.asType().toString().equals("java.lang.String")){
-                designMethodSpecBuilder.addCode(".addStringField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
-                setDataSpecBuilder.addCode("tableClassItem."+fieldName+" = (String)dataList.get("+i+");");
-            } else if(element.asType().toString().equals("int")){
-                designMethodSpecBuilder.addCode(".addIntField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
-                setDataSpecBuilder.addCode("tableClassItem."+fieldName+" = (int)dataList.get("+i+");");
-            } else if(element.asType().toString().equals("long")){
-                designMethodSpecBuilder.addCode(".addLongField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
-                setDataSpecBuilder.addCode("tableClassItem."+fieldName+" = (long)dataList.get("+i+");");
-            } else if(element.asType().toString().equals("float")){
-                designMethodSpecBuilder.addCode(".addFloatField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
-                setDataSpecBuilder.addCode("tableClassItem."+fieldName+" = (float)dataList.get("+i+");");
-            } else if(element.asType().toString().equals("double")){
-                designMethodSpecBuilder.addCode(".addDoubleField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
-                setDataSpecBuilder.addCode("tableClassItem."+fieldName+" = (double)dataList.get("+i+");");
-            } else if(element.asType().toString().equals("boolean")){
-                designMethodSpecBuilder.addCode(".addBooleanField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
-                setDataSpecBuilder.addCode("tableClassItem."+fieldName+" = (boolean)dataList.get("+i+");");
-            } else if(element.asType().toString().equals("java.util.Date")){
-                designMethodSpecBuilder.addCode(".addDateField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
-                ClassName dateClassName = ClassName.get("java.util", "Date");
-                setDataSpecBuilder.addCode("tableClassItem."+fieldName+" = ($T)dataList.get("+i+");", dateClassName);
+            if(!isPublicField){
+                getDataSpecBuilder.addCode("dataList.add(tableClassItem.get"+getterSetter+"());");
+            } else {
+                getDataSpecBuilder.addCode("dataList.add(tableClassItem."+fieldName+");");
             }
 
+
+            String javaType = "";
+            ClassName javaClassName = null;
+            if(element.asType().toString().equals("java.lang.String")){
+                designMethodSpecBuilder.addCode(".addStringField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
+                javaType = "String";
+            } else if(element.asType().toString().equals("int")){
+                designMethodSpecBuilder.addCode(".addIntField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
+                javaType = "int";
+            } else if(element.asType().toString().equals("long")){
+                designMethodSpecBuilder.addCode(".addLongField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
+                javaType = "long";
+            } else if(element.asType().toString().equals("float")){
+                designMethodSpecBuilder.addCode(".addFloatField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
+                javaType = "float";
+            } else if(element.asType().toString().equals("double")){
+                designMethodSpecBuilder.addCode(".addDoubleField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
+                javaType = "double";
+            } else if(element.asType().toString().equals("boolean")){
+                designMethodSpecBuilder.addCode(".addBooleanField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
+                javaType = "boolean";
+            } else if(element.asType().toString().equals("java.util.Date")){
+                designMethodSpecBuilder.addCode(".addDateField(\""+columnName+"\","+(notNull?"true":"false")+","+(unique?"true":"false")+")");
+                javaType = "$T";
+                javaClassName = dateClassName;
+            }
+
+            if(!isPublicField){
+                if(javaClassName != null){
+                    setDataSpecBuilder.addCode("tableClassItem.set" + getterSetter + "((" + javaType + ")dataList.get(" + i + "));", javaClassName);
+                } else {
+                    setDataSpecBuilder.addCode("tableClassItem.set" + getterSetter + "((" + javaType + ")dataList.get(" + i + "));");
+                }
+            } else {
+                if(javaClassName != null) {
+                    setDataSpecBuilder.addCode("tableClassItem." + fieldName + " = (" + javaType + ")dataList.get(" + i + ");", javaClassName);
+                } else {
+                    setDataSpecBuilder.addCode("tableClassItem." + fieldName + " = (" + javaType + ")dataList.get(" + i + ");");
+                }
+            }
 
             designMethodSpecBuilder.addCode("\n");
             setDataSpecBuilder.addCode("\n");

@@ -20,9 +20,16 @@ public class Request extends SQLiteWrapper.TableClass {
     @Column
     public int time;
 
-    @Column(name="tanggal")
-    public Date date;
+    @Column
+    private Date startDate;
 
+    public Date getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(Date startDate) {
+        this.startDate = startDate;
+    }
 
     @Override
     protected void getObjectData(List<Object> dataList) {
