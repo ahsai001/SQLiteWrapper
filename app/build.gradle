@@ -8,7 +8,7 @@ android {
         minSdkVersion 16
         targetSdkVersion 29
         versionCode 4
-        versionName "0.3.9.8"
+        versionName "0.3.10.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -17,9 +17,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
-    sourceCompatibility = "1.8"
-    targetCompatibility = "1.8"
 }
 
 dependencies {
@@ -32,7 +29,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
 
+    implementation project(path: ':sqlitewrapper')
     implementation project(path: ':SQLWAnnotation')
     annotationProcessor project(':SQLWProcessor')
-    implementation project(path: ':sqlitewrapper')
 }
