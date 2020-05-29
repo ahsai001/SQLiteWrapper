@@ -7,8 +7,8 @@ android {
         applicationId "com.ahsailabs.sqlwsampleproject"
         minSdkVersion 16
         targetSdkVersion 29
-        versionCode 4
-        versionName "0.3.10.8"
+        versionCode 5
+        versionName "0.3.11.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -17,6 +17,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 dependencies {
@@ -29,7 +30,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
 
-    implementation project(path: ':sqlitewrapper')
-    implementation project(path: ':SQLWAnnotation')
+    implementation project(':sqlitewrapper')
+    implementation project(':SQLWAnnotation')
     annotationProcessor project(':SQLWProcessor')
 }
