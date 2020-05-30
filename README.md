@@ -1,6 +1,6 @@
 # SQLiteWrapper
 SQLiteWrapper
-
+Simple Wrapper for using sqlite database
     
 How to use this library:
 
