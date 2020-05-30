@@ -1,6 +1,5 @@
 # SQLiteWrapper
-SQLiteWrapper
-Simple Wrapper for using sqlite database
+SQLiteWrapper is a simple wrapper libray for using sqlite database
     
 How to use this library:
 
