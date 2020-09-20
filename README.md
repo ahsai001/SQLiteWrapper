@@ -1,6 +1,5 @@
-# SQLiteWrapper Annotation
-SQLiteWrapper Annotation
-
+# SQLiteWrapper
+SQLiteWrapper is a simple wrapper libray for using sqlite database
     
 How to use this library:
 
@@ -18,6 +17,7 @@ Add it in your root build.gradle at the end of repositories:
 Step 2. Add the dependency
 
 	dependencies {
-    		implementation 'com.github.ahsai001.SQLiteWrapper:SQLWAnnotation:{latest_release_version}'
-    		annotationProcessor 'com.github.ahsai001.SQLiteWrapper:SQLWProcessor:{latest_release_version}'
+		implementation 'com.github.ahsai001.SQLiteWrapper:Core:{latest_release_version}'
+    	implementation 'com.github.ahsai001.SQLiteWrapper:Annotation:{latest_release_version}'
+    	annotationProcessor 'com.github.ahsai001.SQLiteWrapper:Processor:{latest_release_version}'
 	}
