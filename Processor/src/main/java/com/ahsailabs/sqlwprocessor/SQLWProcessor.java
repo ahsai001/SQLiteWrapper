@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -19,6 +20,7 @@ import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -141,7 +143,7 @@ public class SQLWProcessor extends AbstractProcessor {
         //getObjectData(List<Object> dataList, OnlineTryoutItem onlineTryoutItem)
         //setObjectData(List<Object> dataList, OnlineTryoutItem onlineTryoutItem)
 
-
+        ClassName stringClassName = ClassName.get("java.lang", "String");
         ClassName listClassName = ClassName.get("java.util", "List");
         ClassName dateClassName = ClassName.get("java.util", "Date");
         ClassName objectClassName = ClassName.get("java.lang", "Object");
@@ -177,6 +179,8 @@ public class SQLWProcessor extends AbstractProcessor {
         designMethodSpecBuilder.addCode("sqliteWrapper.addTable(new $T.Table("+(tableName.isEmpty() ? targetClassName+".class":"\""+tableName+"\"")+")", sqliteWrapperClassName);
         designMethodSpecBuilder.addCode("\n");
 
+        List<FieldSpec> fieldSpecList = new ArrayList<>();
+
         int i=0;
         for (int j=0; j<variableElements.size(); j++){
             VariableElement element = variableElements.get(j);
@@ -196,7 +200,6 @@ public class SQLWProcessor extends AbstractProcessor {
             boolean index = column.index();
             boolean unique = column.unique();
             boolean notNull = column.notNull();
-
 
 
             String getterSetter = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,fieldName);
@@ -269,6 +272,11 @@ public class SQLWProcessor extends AbstractProcessor {
                 designMethodSpecBuilder.addCode("\n");
             }
 
+            String constantaFieldName = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,fieldName);
+            FieldSpec fieldSpec = FieldSpec.builder(stringClassName,constantaFieldName,
+                    Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL).initializer("\""+columnName+"\"").build();
+            fieldSpecList.add(fieldSpec);
+
             i++;
         }
 
@@ -294,21 +302,29 @@ public class SQLWProcessor extends AbstractProcessor {
             String forthIndex = index.forth();
             String fifthIndex = index.fifth();
 
-            List<String> firstIndexSplit = Splitter.on(",").trimResults().splitToList(firstIndex);
-            String xxx = Joiner.on("\",\"").skipNulls().join(firstIndexSplit);
             if(!firstIndex.isEmpty()){
-                designMethodSpecBuilder.addCode(".addIndex(\""+xxx+"\")");
+                List<String> firstIndexSplit = Splitter.on(",").trimResults().splitToList(firstIndex);
+                firstIndex = Joiner.on("\",\"").skipNulls().join(firstIndexSplit);
+                designMethodSpecBuilder.addCode(".addIndex(\""+firstIndex+"\")");
             }
             if(!secondIndex.isEmpty()){
+                List<String> secondIndexSplit = Splitter.on(",").trimResults().splitToList(secondIndex);
+                secondIndex = Joiner.on("\",\"").skipNulls().join(secondIndexSplit);
                 designMethodSpecBuilder.addCode(".addIndex("+secondIndex+")");
             }
             if(!thirdIndex.isEmpty()){
+                List<String> thirdIndexSplit = Splitter.on(",").trimResults().splitToList(thirdIndex);
+                thirdIndex = Joiner.on("\",\"").skipNulls().join(thirdIndexSplit);
                 designMethodSpecBuilder.addCode(".addIndex("+thirdIndex+")");
             }
             if(!forthIndex.isEmpty()){
+                List<String> forthIndexSplit = Splitter.on(",").trimResults().splitToList(forthIndex);
+                forthIndex = Joiner.on("\",\"").skipNulls().join(forthIndexSplit);
                 designMethodSpecBuilder.addCode(".addIndex("+forthIndex+")");
             }
             if(!fifthIndex.isEmpty()){
+                List<String> fifthIndexSplit = Splitter.on(",").trimResults().splitToList(fifthIndex);
+                fifthIndex = Joiner.on("\",\"").skipNulls().join(fifthIndexSplit);
                 designMethodSpecBuilder.addCode(".addIndex("+fifthIndex+")");
             }
         }
@@ -320,22 +336,29 @@ public class SQLWProcessor extends AbstractProcessor {
             String forthUnique = unique.forth();
             String fifthUnique = unique.fifth();
 
-
-            List<String> firstUniqueSplit = Splitter.on(",").trimResults().splitToList(firstUnique);
-            String xxx = Joiner.on("\",\"").skipNulls().join(firstUniqueSplit);
             if(!firstUnique.isEmpty()){
-                designMethodSpecBuilder.addCode(".addUnique(\""+xxx+"\")");
+                List<String> firstUniqueSplit = Splitter.on(",").trimResults().splitToList(firstUnique);
+                firstUnique = Joiner.on("\",\"").skipNulls().join(firstUniqueSplit);
+                designMethodSpecBuilder.addCode(".addUnique(\""+firstUnique+"\")");
             }
             if(!secondUnique.isEmpty()){
+                List<String> secondUniqueSplit = Splitter.on(",").trimResults().splitToList(secondUnique);
+                secondUnique = Joiner.on("\",\"").skipNulls().join(secondUniqueSplit);
                 designMethodSpecBuilder.addCode(".addUnique("+secondUnique+")");
             }
             if(!thirdUnique.isEmpty()){
+                List<String> thirdUniqueSplit = Splitter.on(",").trimResults().splitToList(thirdUnique);
+                thirdUnique = Joiner.on("\",\"").skipNulls().join(thirdUniqueSplit);
                 designMethodSpecBuilder.addCode(".addUnique("+thirdUnique+")");
             }
             if(!forthUnique.isEmpty()){
+                List<String> forthUniqueSplit = Splitter.on(",").trimResults().splitToList(forthUnique);
+                forthUnique = Joiner.on("\",\"").skipNulls().join(forthUniqueSplit);
                 designMethodSpecBuilder.addCode(".addUnique("+forthUnique+")");
             }
             if(!fifthUnique.isEmpty()){
+                List<String> fifthUniqueSplit = Splitter.on(",").trimResults().splitToList(fifthUnique);
+                fifthUnique = Joiner.on("\",\"").skipNulls().join(fifthUniqueSplit);
                 designMethodSpecBuilder.addCode(".addUnique("+fifthUnique+")");
             }
         }
@@ -354,6 +377,7 @@ public class SQLWProcessor extends AbstractProcessor {
         //the class name will be the annotated class name + SQLWH
         TypeSpec targetClass = TypeSpec.classBuilder(originatingType.getSimpleName().toString() + CLASS_SUFFIX)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addFields(fieldSpecList)
                 .addMethod(designMethodSpecBuilder.build())
                 .addMethod(getDataSpecBuilder.build())
                 .addMethod(setDataSpecBuilder.build())

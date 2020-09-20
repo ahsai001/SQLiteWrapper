@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
         SQLiteWrapper.addDatabase(new SQLiteWrapper.Database() {
             @Override
             public Context getContext() {
-                return getApplicationContext();
+                return MainActivity.this;
             }
 
             @Override

@@ -8,6 +8,7 @@ import android.database.DatabaseUtils;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -246,7 +247,9 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
     @Override
     public void onConfigure(SQLiteDatabase db) {
         super.onConfigure(db);
-        db.setForeignKeyConstraintsEnabled(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            db.setForeignKeyConstraintsEnabled(true);
+        }
     }
 
     @Override
@@ -483,7 +486,9 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
             ContentValues contentValues = getContentValues(table, dataList);
 
             if(table.isRecordLogEnabled){
-                contentValues.put(CREATED_AT, System.currentTimeMillis());
+                long timeStamp = System.currentTimeMillis();
+                contentValues.put(CREATED_AT, timeStamp);
+                tableClass._created_at = new Date(timeStamp);
             }
 
             id = database.insert(tableClass.getTableName(), null, contentValues);
@@ -517,7 +522,9 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
             ContentValues contentValues = getContentValues(table, dataList);
 
             if(table.isRecordLogEnabled){
-                contentValues.put(UPDATED_AT, System.currentTimeMillis());
+                long timeStamp = System.currentTimeMillis();
+                contentValues.put(UPDATED_AT, timeStamp);
+                tableClass._updated_at = new Date(timeStamp);
             }
 
             affectedRows = database.update(tableClass.getTableName(), contentValues, ID+"=?",
@@ -676,8 +683,10 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
     }
 
 
-
-    public <T extends TableClass> List<T> findAll(String tableName, Class<T> clazz) {
+    public <T extends TableClass> List<T> findAll(String tableName, Class<T> clazz){
+        return findAll(tableName, clazz, null, null, null);
+    }
+    public <T extends TableClass> List<T> findAll(String tableName, Class<T> clazz, String orderBy, String limit, String offset) {
         try {
             if(TextUtils.isEmpty(tableName)){
                 tableName = clazz.getSimpleName();
@@ -691,6 +700,18 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
 
             if(table.isSoftDeleteEnabled){
                 sql += " WHERE "+DELETED_AT+" IS NULL";
+            }
+
+            if(!TextUtils.isEmpty(orderBy)){
+                sql += " order by "+orderBy;
+            }
+
+            if(!TextUtils.isEmpty(limit)){
+                sql += " limit "+limit;
+            }
+
+            if(!TextUtils.isEmpty(offset)){
+                sql += " offset "+offset;
             }
 
             Cursor cursor = database.rawQuery(sql, null);
@@ -746,7 +767,10 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
         return  null;
     }
 
-    public <T extends TableClass> List<T> findAllWithCriteria(String tableName, Class<T> clazz, String whereClause, String[] whereClauseArgs) {
+    public <T extends TableClass> List<T> findAllWithCriteria(String tableName, Class<T> clazz, String whereClause, String[] whereClauseArgs){
+        return findAllWithCriteria(tableName, clazz, whereClause, whereClauseArgs, null, null, null);
+    }
+    public <T extends TableClass> List<T> findAllWithCriteria(String tableName, Class<T> clazz, String whereClause, String[] whereClauseArgs, String orderBy, String limit, String offset) {
         try {
             if(TextUtils.isEmpty(tableName)){
                 tableName = clazz.getSimpleName();
@@ -760,6 +784,18 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
 
             if(table.isSoftDeleteEnabled){
                 sql += " AND "+DELETED_AT+" IS NULL";
+            }
+
+            if(!TextUtils.isEmpty(orderBy)){
+                sql += " order by "+orderBy;
+            }
+
+            if(!TextUtils.isEmpty(limit)){
+                sql += " limit "+limit;
+            }
+
+            if(!TextUtils.isEmpty(offset)){
+                sql += " offset "+offset;
             }
 
             Cursor cursor = database.rawQuery(sql, whereClauseArgs);
@@ -1419,18 +1455,25 @@ public final class SQLiteWrapper extends SQLiteOpenHelper {
         }
 
         public static <T extends TableClass> List<T> findAll(String databaseName, String tableName, Class<T> clazz){
+            return findAll(databaseName, tableName, clazz, null, null, null);
+        }
+        public static <T extends TableClass> List<T> findAll(String databaseName, String tableName, Class<T> clazz, String orderBy, String limit, String offset){
             if(TextUtils.isEmpty(tableName)){
                 tableName = clazz.getSimpleName();
             }
-            return SQLiteWrapper.of(databaseName).findAll(tableName, clazz);
+            return SQLiteWrapper.of(databaseName).findAll(tableName, clazz, orderBy, limit, offset);
         }
 
-        public static <T extends TableClass> List<T> findWithCriteria(String databaseName, String tableName,
-                                                                  Class<T> clazz, String whereClause, String[] whereClauseArgs){
+        public static <T extends TableClass> List<T> findAllWithCriteria(String databaseName, String tableName,
+                                                                      Class<T> clazz, String whereClause, String[] whereClauseArgs){
+            return findAllWithCriteria(databaseName, tableName, clazz, whereClause, whereClauseArgs, null, null, null);
+        }
+        public static <T extends TableClass> List<T> findAllWithCriteria(String databaseName, String tableName,
+                                                                  Class<T> clazz, String whereClause, String[] whereClauseArgs, String orderBy, String limit, String offset){
             if(TextUtils.isEmpty(tableName)){
                 tableName = clazz.getSimpleName();
             }
-            return SQLiteWrapper.of(databaseName).findAllWithCriteria(tableName, clazz, whereClause, whereClauseArgs);
+            return SQLiteWrapper.of(databaseName).findAllWithCriteria(tableName, clazz, whereClause, whereClauseArgs, orderBy, limit, offset);
         }
 
         public static <T extends TableClass> List<T> selectQuery(String databaseName, boolean distinct, String tableName,
