@@ -40,16 +40,23 @@ public class Lookup {
     private static boolean isSecureEnabled = false;
     private static SQLiteWrapper sqLiteWrapper;
 
+
+    //keystorehelper
+    private static String keyAlias = null;
+    private static boolean forceSymetric = false;
+
     public static void init(Context context){
         init(context, false);
     }
-
     public static void init(Context context, boolean isSecureEnabled){
+        init(context, isSecureEnabled, false);
+    }
+    public static void init(Context context, boolean isSecureEnabled, boolean forceSymetric){
         if(sqLiteWrapper == null) {
             sqLiteWrapper = SQLiteWrapper.getLookupDatabase(context);
         }
 
-        // Initialize encryption/decryption key
+        // Initialize encryption/decryption key for AES
         Lookup.isSecureEnabled = false;
         if(isSecureEnabled) {
             try {
@@ -65,10 +72,21 @@ public class Lookup {
             }
         }
 
+        Lookup.forceSymetric = forceSymetric;
+
+        // initialize encryption/decryption for RSA
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            keyAlias = context.getPackageName();
+            try {
+                KeyStoreHelper.createKeys(context, keyAlias);
+            } catch (Exception e) {
+                //Probably will never happen.
+                throw new RuntimeException(e);
+            }
+        }
+
         Lookup.isSecureEnabled = isSecureEnabled;
     }
-
-
 
     private static String encode(byte[] input) {
         return Base64.encodeToString(input, Base64.NO_PADDING | Base64.NO_WRAP);
@@ -79,8 +97,8 @@ public class Lookup {
     private static String generateAesKeyName(Context context)
             throws InvalidKeySpecException, NoSuchAlgorithmException,
             NoSuchProviderException {
-        final char[] password = context.getPackageName().toCharArray();
-        final byte[] salt = getDeviceSerialNumber(context).getBytes();
+        final char[] password = bitshiftEntireString(context.getPackageName()).toCharArray();
+        final byte[] salt = bitshiftEntireString(getDeviceSerialNumber(context)).getBytes();
         SecretKey key;
         try {
             // TODO: what if there's an OS upgrade and now supports the primary
@@ -167,31 +185,52 @@ public class Lookup {
         }
         return encode(generator.generateKey().getEncoded());
     }
-    private static String encrypt(String cleartext) {
-        if (cleartext == null || cleartext.length() == 0) {
-            return cleartext;
+
+    /**
+     * Bitshift the entire string to obfuscate it further
+     * and make it harder to guess the string.
+     */
+    private static String bitshiftEntireString(String str) {
+        StringBuilder msg = new StringBuilder(str);
+        int userKey = 6;
+        for (int i = 0; i < msg.length(); i ++) {
+            msg.setCharAt(i, (char) (msg.charAt(i) + userKey));
         }
-        try {
-            final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
-            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(
-                    sKey, AES_KEY_ALG));
-            return encode(cipher.doFinal(cleartext
-                    .getBytes("UTF-8")));
-        } catch (Exception e) {
-            return null;
+        return msg.toString();
+    }
+
+    private static String encrypt(String plainText) {
+        if (plainText == null || plainText.length() == 0) {
+            return plainText;
+        }
+
+        if (!forceSymetric && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            return KeyStoreHelper.encrypt(keyAlias, plainText);
+        } else {
+            try {
+                final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
+                cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(sKey, AES_KEY_ALG));
+                return encode(cipher.doFinal(plainText.getBytes("UTF-8")));
+            } catch (Exception e) {
+                return null;
+            }
         }
     }
     private static String decrypt(String ciphertext) {
         if (ciphertext == null || ciphertext.length() == 0) {
             return ciphertext;
         }
-        try {
-            final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
-            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(
-                    sKey, AES_KEY_ALG));
-            return new String(cipher.doFinal(decode(ciphertext)), "UTF-8");
-        } catch (Exception e) {
-            return null;
+
+        if (!forceSymetric && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2)) {
+            return KeyStoreHelper.decrypt(keyAlias, ciphertext);
+        } else {
+            try {
+                final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
+                cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sKey, AES_KEY_ALG));
+                return new String(cipher.doFinal(decode(ciphertext)), "UTF-8");
+            } catch (Exception e) {
+                return null;
+            }
         }
     }
 
