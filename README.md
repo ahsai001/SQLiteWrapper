@@ -20,6 +20,11 @@ Add it in your root build.gradle at the end of repositories:
 Step 2. Add the dependency
 
 	dependencies {
+	
+		implementation 'com.github.ahsai001:SQLiteWrapper:{latest_release_version}'
+		
+		or 
+		
 		implementation 'com.github.ahsai001.SQLiteWrapper:Core:{latest_release_version}'
     	implementation 'com.github.ahsai001.SQLiteWrapper:Annotation:{latest_release_version}'
     	annotationProcessor 'com.github.ahsai001.SQLiteWrapper:Processor:{latest_release_version}'
