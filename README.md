@@ -1,7 +1,15 @@
 # SQLiteWrapper
 SQLiteWrapper is a simple wrapper for using sqlite database
 
-SQLiteWrapper is multi database, support migration plan, simple use, without reflection and lightweight
+SQLiteWrapper : 
+	1. support multiple database
+	2. support migration plan
+	3. simple use
+	4. without reflection
+	5. lightweight
+ 
+# Lookup Table
+In this library also there is a Lookup table, that can used as key value pair storage like preferences in android (powered by SQLiteWrapper)
     
     
 # How to use this library:
