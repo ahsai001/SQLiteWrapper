@@ -1,7 +1,10 @@
 # SQLiteWrapper
-SQLiteWrapper is a simple wrapper libray for using sqlite database
+SQLiteWrapper is a simple wrapper for using sqlite database
+
+SQLiteWrapper is multi database, support migration plan, simple use, without reflection and lightweight
     
-How to use this library:
+    
+# How to use this library:
 
 Step 1. Add the JitPack repository to your build file
 
