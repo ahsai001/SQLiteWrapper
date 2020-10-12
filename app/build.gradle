@@ -7,8 +7,8 @@ android {
         applicationId "com.ahsailabs.sqlwsampleproject"
         minSdkVersion 16
         targetSdkVersion 30
-        versionCode 9
-        versionName "0.6.15.12"
+        versionCode 10
+        versionName "0.6.16.14"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

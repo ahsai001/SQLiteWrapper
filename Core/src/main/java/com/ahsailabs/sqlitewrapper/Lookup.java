@@ -43,7 +43,6 @@ public class Lookup {
 
     //keystorehelper
     private static String keyAlias = null;
-    private static boolean forceSymetric = false;
 
     public static void init(Context context){
         init(context, false);
@@ -51,37 +50,44 @@ public class Lookup {
     public static void init(Context context, boolean isSecureEnabled){
         init(context, isSecureEnabled, false);
     }
-    public static void init(Context context, boolean isSecureEnabled, boolean forceSymetric){
+    public static void init(Context context, boolean isSecureEnabled, boolean fullSymetric){
         if(sqLiteWrapper == null) {
             sqLiteWrapper = SQLiteWrapper.getLookupDatabase(context);
         }
 
-        // Initialize encryption/decryption key for AES
-        Lookup.isSecureEnabled = false;
-        if(isSecureEnabled) {
-            try {
-                final String key = generateAesKeyName(context);
-                String value = get(key, null);
-                if (value == null) {
-                    value = generateAesKeyValue();
-                    Lookup.set(key, value);
-                }
-                sKey = decode(value);
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
-            }
-        }
-
-        Lookup.forceSymetric = forceSymetric;
-
         // initialize encryption/decryption for RSA
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+        if (!fullSymetric && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             keyAlias = context.getPackageName();
             try {
                 KeyStoreHelper.createKeys(context, keyAlias);
             } catch (Exception e) {
                 //Probably will never happen.
                 throw new RuntimeException(e);
+            }
+        }
+
+        // Initialize encryption/decryption key for AES
+        Lookup.isSecureEnabled = false;
+        if(isSecureEnabled) {
+            try {
+                String key = generateAesKeyName(context);
+                if(keyAlias != null) {
+                    key = KeyStoreHelper.encrypt(keyAlias, key);
+                }
+                String value = get(key, null);
+                if (value == null) {
+                    value = generateAesKeyValue();
+                    if(keyAlias != null) {
+                        value = KeyStoreHelper.encrypt(keyAlias, value);
+                    }
+                    Lookup.set(key, value);
+                }
+                if(keyAlias != null) {
+                    value = KeyStoreHelper.decrypt(keyAlias, value);
+                }
+                sKey = decode(value);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
             }
         }
 
@@ -204,16 +210,12 @@ public class Lookup {
             return plainText;
         }
 
-        if (!forceSymetric && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            return KeyStoreHelper.encrypt(keyAlias, plainText);
-        } else {
-            try {
-                final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
-                cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(sKey, AES_KEY_ALG));
-                return encode(cipher.doFinal(plainText.getBytes("UTF-8")));
-            } catch (Exception e) {
-                return null;
-            }
+        try {
+            final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(sKey, AES_KEY_ALG));
+            return encode(cipher.doFinal(plainText.getBytes("UTF-8")));
+        } catch (Exception e) {
+            return null;
         }
     }
     private static String decrypt(String ciphertext) {
@@ -221,16 +223,12 @@ public class Lookup {
             return ciphertext;
         }
 
-        if (!forceSymetric && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2)) {
-            return KeyStoreHelper.decrypt(keyAlias, ciphertext);
-        } else {
-            try {
-                final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
-                cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sKey, AES_KEY_ALG));
-                return new String(cipher.doFinal(decode(ciphertext)), "UTF-8");
-            } catch (Exception e) {
-                return null;
-            }
+        try {
+            final Cipher cipher = Cipher.getInstance(AES_KEY_ALG, PROVIDER);
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sKey, AES_KEY_ALG));
+            return new String(cipher.doFinal(decode(ciphertext)), "UTF-8");
+        } catch (Exception e) {
+            return null;
         }
     }
 
