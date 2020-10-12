@@ -71,9 +71,6 @@ public class Lookup {
         if(isSecureEnabled) {
             try {
                 String key = generateAesKeyName(context);
-                if(keyAlias != null) {
-                    key = KeyStoreHelper.encrypt(keyAlias, key);
-                }
                 String value = get(key, null);
                 if (value == null) {
                     value = generateAesKeyValue();
